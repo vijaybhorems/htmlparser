@@ -27,4 +27,11 @@ public class HTMLScraperController {
         }
         return null;
     }
+
+    @RequestMapping(value = "/{name}",method= RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    public String helloscraper(@PathVariable("name") String name) {
+        return "Hello " + name;
+    }
+
 }
