@@ -87,8 +87,12 @@ public class HTMLScraperService {
         return Xsoup.compile(xpath).evaluate(document).list();
     }
 
-
-
+    /**
+     * Retrieve the details using xpath entries in the map
+     * @param connectionUrl Url to the HTML
+     * @param pathMap Map containing attribute name and xpath to the attribute
+     * @return JSONObject constructed using keys and extracted values
+     */
     public JSONObject extractJson(String connectionUrl, Map<String, String> pathMap) {
         if (StringUtils.hasLength(connectionUrl)) {
             try {
