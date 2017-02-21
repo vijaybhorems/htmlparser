@@ -1,5 +1,6 @@
 package com.narvar.services;
 
+import org.json.simple.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
@@ -10,7 +11,9 @@ import org.springframework.util.StringUtils;
 import us.codecraft.xsoup.Xsoup;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This is an utility service intended to scrape HTML documents.
@@ -42,6 +45,27 @@ public class HTMLScraperService {
     }
 
     /**
+     * When the source of html is either an order page url or a tracking page,
+     * the HTML document is obtained first and passed to extractText method along with selector
+     * @param connectionUrl
+     * @param selector
+     * @return Value present in the element mentioned by selector
+     */
+    public String extract(String connectionUrl, String selector) {
+        if (StringUtils.hasLength(connectionUrl) && StringUtils.hasLength(selector)) {
+            try {
+                Document doc = Jsoup.connect(connectionUrl).timeout(5000).get();
+                return extractText(doc, selector);
+            } catch (IOException e) {
+                LOGGER.info("Failed to parse the html for given selector.");
+                e.printStackTrace();
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Extract individual element from an HTML document using xPath
      * @param htmlString
      * @param xpath
@@ -63,18 +87,18 @@ public class HTMLScraperService {
         return Xsoup.compile(xpath).evaluate(document).list();
     }
 
-    /**
-     * When the source of html is either an order page url or a tracking page,
-     * the HTML document is obtained first and passed to extractText method along with selector
-     * @param connectionUrl
-     * @param selector
-     * @return Value present in the element mentioned by selector
-     */
-    public String extract(String connectionUrl, String selector) {
-        if (!StringUtils.hasLength(connectionUrl) && !StringUtils.hasLength(selector)) {
+
+
+    public JSONObject extractJson(String connectionUrl, Map<String, String> pathMap) {
+        if (StringUtils.hasLength(connectionUrl)) {
             try {
-                Document doc = Jsoup.connect(connectionUrl).timeout(5000).get();
-                return extractText(doc, selector);
+                Document doc = Jsoup.connect(connectionUrl).get();
+                JSONObject trackingObject = new JSONObject();
+                for (Map.Entry<String, String> entry : pathMap.entrySet()) {
+                    String val = Xsoup.compile(entry.getValue()).evaluate(doc).get();
+                    trackingObject.put(entry.getKey(), val);
+                }
+                return trackingObject;
             } catch (IOException e) {
                 LOGGER.info("Failed to parse the html for given selector.");
                 e.printStackTrace();
@@ -84,7 +108,7 @@ public class HTMLScraperService {
         return null;
     }
 
-    /*public static void main(String[] args) {
+    public static void main(String[] args) {
         HTMLScraperService service = new HTMLScraperService();
         String html = "<html><div><a href='https://github.com'>github.com</a></div>" +
                 "<table><tr><td>a</td><td>b</td></tr></table></html>";
@@ -96,5 +120,11 @@ public class HTMLScraperService {
         for (String item : list) {
             System.out.println(item);
         }
-    }*/
+
+        Map<String, String> trackingMap = new HashMap<>();
+        trackingMap.put("status", "//*[@id=\"wrap\"]/div[3]/div/div[1]/div[2]/div[2]/h2");
+        JSONObject jsonObject = service.extractJson("http://webtrack.dhlglobalmail.com/?trackingnumber=92748901859227111139186495", trackingMap);
+        System.out.println(jsonObject.toString());
+
+    }
 }
